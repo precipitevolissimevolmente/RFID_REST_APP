@@ -20,6 +20,8 @@ public class RFIDService {
     private final static char[] hexArray = "0123456789ABCDEF".toCharArray();
     public static final int error = -1;
     public static final int MEMORY_BLOCK_SIZE = 16;
+    public static final String LOAD_KEY = "LoadKey";
+    public static final String ERROR_S = "error";
     private CardTerminal terminal;
     Map<String, String> atrInfo;
 
@@ -183,9 +185,9 @@ public class RFIDService {
             String tagResponse = bytesToHex(byteArray);
 
             if (tagResponse.contains(Utils.SUCCESS)) {
-                return ImmutableMap.of("LoadKey", "ok");
+                return ImmutableMap.of(LOAD_KEY, "ok");
             } else {
-                return ImmutableMap.of("LoadKey", "error");
+                return ImmutableMap.of(LOAD_KEY, ERROR_S);
             }
         } catch (CardException e) {
             e.printStackTrace();

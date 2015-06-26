@@ -28,6 +28,7 @@ import static main.services.Utils.blocksForHashChain;
  * Created by G on 11.06.2015.
  */
 public class ChargeTagService {
+    public static final String STATUS = "status";
     private ObjectInputStream input;
     private ObjectOutputStream output;
     RFIDService rfidService;
@@ -49,9 +50,14 @@ public class ChargeTagService {
         String cardUID = rfidService.readUID();
         LoadFromJSON jsonLoader = new LoadFromJSON();
         Map<String, List<Integer>> cardKeys = jsonLoader.getCardKeys();
-        String cardKey = cardKeys.get(cardUID).stream()
-                .map(Object::toString)
-                .collect(Collectors.joining(""));
+        if(cardKeys.get(cardUID) == null) {
+            return ImmutableMap.of(STATUS, "Invalid card");
+        }
+        Map<String, String> loadKeyResult = rfidService.loadKey(cardKeys.get(cardUID));
+        if(Objects.equals(loadKeyResult.get(RFIDService.LOAD_KEY), RFIDService.ERROR_S)) {
+            return ImmutableMap.of(STATUS, "Invalid key");
+        }
+
         List<String> hashChain = getPayWords();
         Integer usedPayWords = getUsedPayWords();
         int currentAmount = hashChain.size() - usedPayWords - 1;
