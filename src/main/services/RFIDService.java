@@ -343,9 +343,9 @@ public class RFIDService {
             }
             //write data block
             if (write(blockNumber, data)) {
-                return ImmutableMap.of("write", "command executed");
+                return ImmutableMap.of("write", "Write command executed");
             }
-            return ImmutableMap.of("write", "command failed");
+            return ImmutableMap.of("write", "Write command failed");
         } catch (CardException e) {
             e.printStackTrace();
             return ImmutableMap.of(Utils.ERROR, "errr");

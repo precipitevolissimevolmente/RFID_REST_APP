@@ -180,10 +180,10 @@ public class RFIDController {
 
     @POST
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("pay/{amount}")
-    public Response pay(@PathParam("amount") Integer amount) throws Exception {
+    @Path("pay/{numberOfTickets}")
+    public Response pay(@PathParam("numberOfTickets") Integer numberOfTickets) throws Exception {
         PayService chargeTagService = new PayService("I29AC");
-        return Response.ok(chargeTagService.payTax(amount)).header("Access-Control-Allow-Origin", "*").build();
+        return Response.ok(chargeTagService.payTax(numberOfTickets)).header("Access-Control-Allow-Origin", "*").build();
     }
 
     @OPTIONS

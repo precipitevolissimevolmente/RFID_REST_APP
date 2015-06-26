@@ -92,7 +92,7 @@ public class ChargeTagService {
             }
             return ImmutableMap.of("currentAmount", String.valueOf(currentAmount), Utils.ERROR, "you can add only " + maxAmountToLoad);
         }
-        response.put("totalAmount", String.valueOf(currentAmount + amount));
+        response.put("totalAmount", "Total amount: " + String.valueOf(currentAmount + amount));
 
         Message msg = new Message();
         msg.setMessage("getCertificateAndCharge");
@@ -144,7 +144,7 @@ public class ChargeTagService {
         for (int i = 0; i < hashChain1.length; i++) {
             rfidService.authenticateAndWriteData(blocksForHashChain.get(blocksForHashChain.size() - 1 - i), hashChain1[i]);
         }
-        response.put("hashChain", "Loaded");
+        response.put("hashChain", "Hash chain loaded");
         return response;
     }
 

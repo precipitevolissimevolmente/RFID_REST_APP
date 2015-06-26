@@ -20,7 +20,7 @@ public class PayService {
     private String busNumber;
 
     public PayService(String busNumber) {
-        if(busNumber.getBytes().length > 5) {
+        if (busNumber.getBytes().length > 5) {
             throw new InvalidParameterException("Bus number size exceeded!");
         }
 
@@ -29,6 +29,9 @@ public class PayService {
     }
 
     public Map<String, String> payTax(Integer numberOfTickets) {
+        if (numberOfTickets < 1) {
+            return ImmutableMap.of(Utils.ERROR, "Invalid number of tickets");
+        }
         LoadFromJSON loadCardKeys = new LoadFromJSON();
         Map<String, List<Integer>> cardKeys = loadCardKeys.getCardKeys();
         String cardUID = rfidService.readUID();
@@ -47,16 +50,20 @@ public class PayService {
         Integer usedHash = getUsedPayWords();
         //Check amount
         if (usedHash + numberOfTickets * ticketPrice > hashChain.size()) {
-            status.put("amount", "You have only " + String.valueOf(hashChain.size() - usedHash) + " Ron");
+            if(hashChain.size() - 1 - usedHash == 0) {
+                status.put("error", "Card is empty");
+                return status;
+            }
+            status.put("error", "You have only " + String.valueOf(hashChain.size() - 1 - usedHash) + " Ron");
             return status;
         }
         usedHash += numberOfTickets * ticketPrice;
         rfidService.authenticateAndWriteData(Utils.usedHashBlock, String.valueOf(usedHash));
         long epochSecond = Instant.now().getEpochSecond();
-        rfidService.authenticateAndWriteData(Utils.lastBusData, String.valueOf(busNumber + "#"+ epochSecond));
+        rfidService.authenticateAndWriteData(Utils.lastBusData, String.valueOf(busNumber + "#" + epochSecond));
         status.put("busInfo", busNumber);
         status.put("time", Instant.ofEpochSecond(epochSecond).toString());
-        status.put("left", hashChain.size()-usedHash-1 + " Ron");
+        status.put("left", hashChain.size() - usedHash - 1 + " Ron left");
         return status;
     }
 
