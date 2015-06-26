@@ -11,6 +11,7 @@ import java.util.*;
 
 import static com.google.common.collect.ImmutableList.of;
 import static main.services.Utils.asciiToHex;
+import static main.services.Utils.parseResponse;
 
 /**
  * Created by G on 07.06.2015.
@@ -53,7 +54,7 @@ public class RFIDService {
             CommandAPDU command = new CommandAPDU(toByteArray(of(0xFF, 0xCA, 0x00, 0x00, 0x04)));
             ResponseAPDU response = channel.transmit(command);
             byte[] byteArray = response.getBytes();
-            info.put("UID", bytesToHex(byteArray));
+            info.put("UID", parseResponse(bytesToHex(byteArray)));
             /*
             *   Get PPSE - Proximit Payment System Environment
             *   Command:  00 a4 04 00 0e    32 50 41 59 2e 53 59 53 2e 44 44 46 30 31 00
@@ -62,7 +63,7 @@ public class RFIDService {
             * */
             command = new CommandAPDU(Bytes.concat(toByteArray(of(0x00, 0xA4, 0x04, 0x00, 0x0E)), "2PAY.SYS.DDF01".getBytes()));
             response = channel.transmit(command);
-            info.put("PPSE", bytesToHex(response.getBytes()));
+            info.put("PPSE", parseResponse(bytesToHex(response.getBytes())));
 
             /*
             *   Command to get card Type for MasterCard
@@ -95,7 +96,7 @@ public class RFIDService {
             * */
             command = new CommandAPDU(toByteArray(of(0x00, 0xB2, 0x01, 0x0C, 0x00)));
             response = channel.transmit(command);
-            info.put("CARD Number", parseCardNumber(bytesToHex(response.getBytes())));
+            info.put("cardNumber", parseCardNumber(bytesToHex(response.getBytes())));
 
         } catch (Exception e) {
             e.printStackTrace();
