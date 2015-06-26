@@ -43,30 +43,32 @@ public class ChargeTagService {
     }
 
     /**
-     *
      * @return current amount on the card
      */
     public Map<String, String> getCardAmount() {
         String cardUID = rfidService.readUID();
         LoadFromJSON jsonLoader = new LoadFromJSON();
         Map<String, List<Integer>> cardKeys = jsonLoader.getCardKeys();
-        if(cardKeys.get(cardUID) == null) {
+        if (cardKeys.get(cardUID) == null) {
             return ImmutableMap.of(STATUS, "Invalid card");
         }
         Map<String, String> loadKeyResult = rfidService.loadKey(cardKeys.get(cardUID));
-        if(Objects.equals(loadKeyResult.get(RFIDService.LOAD_KEY), RFIDService.ERROR_S)) {
+        if (Objects.equals(loadKeyResult.get(RFIDService.LOAD_KEY), RFIDService.ERROR_S)) {
             return ImmutableMap.of(STATUS, "Invalid key");
         }
 
         List<String> hashChain = getPayWords();
         Integer usedPayWords = getUsedPayWords();
         int currentAmount = hashChain.size() - usedPayWords - 1;
-        return ImmutableMap.of("amount", String.valueOf(currentAmount));
+        return ImmutableMap.of("amount", String.valueOf(currentAmount) + " RON", "tickets", String.valueOf(currentAmount / 2));
     }
 
     public Map<String, String> charge(Integer amount) {
         if (amount > 42) {
-            return ImmutableMap.of(Utils.ERROR, "maximum amount allowed is 42");
+            return ImmutableMap.of(Utils.ERROR, "Maximum amount allowed is 42");
+        }
+        if (amount < 1) {
+            return ImmutableMap.of(Utils.ERROR, "Invalid amount");
         }
         Map<String, String> response = new HashMap<>();
         Message certificate;
@@ -74,16 +76,23 @@ public class ChargeTagService {
 
         LoadFromJSON loadCardKeys = new LoadFromJSON();
         Map<String, List<Integer>> cardKeys = loadCardKeys.getCardKeys();
-
+        if (cardKeys.get(cardUID) == null) {
+            return ImmutableMap.of(STATUS, "Invalid card");
+        }
+        //Load key
+        response.putAll(rfidService.loadKey(cardKeys.get(cardUID)));
         //check current amount
         List<String> hashChain = getPayWords();
         Integer usedPayWords = getUsedPayWords();
         int currentAmount = hashChain.size() - usedPayWords - 1;
         if (currentAmount + amount > 42) {
-            int maxAmountToLoad = 42 - (hashChain.size() - usedPayWords);
+            int maxAmountToLoad = 42 - currentAmount;
+            if (maxAmountToLoad == 0) {
+                return ImmutableMap.of("status", "Card is full");
+            }
             return ImmutableMap.of("currentAmount", String.valueOf(currentAmount), Utils.ERROR, "you can add only " + maxAmountToLoad);
         }
-        response.put("totalAmount", String.valueOf(currentAmount+amount));
+        response.put("totalAmount", String.valueOf(currentAmount + amount));
 
         Message msg = new Message();
         msg.setMessage("getCertificateAndCharge");
@@ -102,7 +111,7 @@ public class ChargeTagService {
             initCommunication();
         } catch (IOException e) {
             e.printStackTrace();
-            return ImmutableMap.of(Utils.ERROR, "serverError");
+            return ImmutableMap.of(Utils.ERROR, "server Offline");
         }
 
         System.out.println("in and out local initialized");
@@ -123,7 +132,6 @@ public class ChargeTagService {
         }
 
         //write data to TAG
-        response.putAll(rfidService.loadKey(cardKeys.get(cardUID)));
         //Save on card block 62 certificate
         response.putAll(rfidService.authenticateAndWriteData(62, sha1(certificate.toString())));
         //Save on card block 60 zero for number for used hashChain
