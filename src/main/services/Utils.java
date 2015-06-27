@@ -2,6 +2,8 @@ package main.services;
 
 import com.google.common.collect.ImmutableList;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.List;
 
 /**
@@ -56,5 +58,18 @@ public class Utils {
             output.append((char) Integer.parseInt(str, 16));
         }
         return output.toString();
+    }
+
+    public static String sha1(String input) {
+        try {
+            MessageDigest mDigest = MessageDigest.getInstance("SHA1");
+            byte[] shortArray = new byte[16];
+            byte[] result = mDigest.digest(input.getBytes()); //is 20bytes
+            System.arraycopy(result, 0, shortArray, 0, shortArray.length);
+            return new String(shortArray);
+        } catch (NoSuchAlgorithmException ex) {
+            ex.printStackTrace();
+        }
+        return null;
     }
 }

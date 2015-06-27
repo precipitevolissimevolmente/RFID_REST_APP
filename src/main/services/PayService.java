@@ -1,7 +1,7 @@
 package main.services;
 
 import com.google.common.collect.ImmutableMap;
-import main.util.LoadFromJSON;
+import main.util.JsonUtil;
 
 import java.security.InvalidParameterException;
 import java.time.Instant;
@@ -32,7 +32,7 @@ public class PayService {
         if (numberOfTickets < 1) {
             return ImmutableMap.of(Utils.ERROR, "Invalid number of tickets");
         }
-        LoadFromJSON loadCardKeys = new LoadFromJSON();
+        JsonUtil loadCardKeys = new JsonUtil();
         Map<String, List<Integer>> cardKeys = loadCardKeys.getCardKeys();
         String cardUID = rfidService.readUID();
 

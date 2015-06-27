@@ -4,8 +4,11 @@
  */
 package main.payword.Servers;
 
+import main.payword.MessagePacket.ControllerMessage;
 import main.payword.MessagePacket.Info;
 import main.payword.MessagePacket.Message;
+import main.services.Utils;
+import main.util.JsonUtil;
 
 import javax.swing.*;
 import java.awt.*;
@@ -20,9 +23,7 @@ import java.math.BigInteger;
 import java.net.BindException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
+import java.util.*;
 
 /**
  * @author G
@@ -219,7 +220,7 @@ public class PublicTransportServer extends JFrame implements ActionListener {
             }
 
 
-            display.setText("This is a multithreded server\n");
+            display.setText("This is a multithreaded server\n");
             display.append("Server waiting for client on port "
                     + serverSocket.getLocalPort() + "\n");
 
@@ -323,7 +324,7 @@ public class PublicTransportServer extends JFrame implements ActionListener {
      * ************************************************************
      */
     public void sysExit(int ext) {
-        System.out.println("Iesire");
+        System.out.println("Exit");
         loopCTL = false;
         loopCTL2 = false;
         closeConnection();
@@ -405,67 +406,113 @@ public class PublicTransportServer extends JFrame implements ActionListener {
             display.append("\nThread run() 1: running Thread" + (trdCnt + 1));
 
             try {
-
                 while (loopCTL2) {
-                    System.out.println("astept mesajele------");
-                    Message messageToClient = new Message();
-                    Message messagePacket = (Message) this.br.readObject();
-                    System.out.println(messagePacket.getMessage());
-
-                    if (messagePacket.getMessage().equals("getCertificateAndCharge")) {
-                        listOfClients.add(messagePacket);
-                        System.out.println("enrollClient ok!");
-
-                        System.out.println(messagePacket.getPublicKey());
-                        RSA rsa = new RSA();
-
-                        /*C(U)=(B,U,IPU,K,EXP,INFO, SIG(THIS))*/
-
-                        messageToClient.setMessage("enrollClient ok!");
-                        messageToClient.setIdBank("RATP");
-                        messageToClient.setCardNumber(messagePacket.getCardNumber()); //U
-                        messageToClient.setIPU(this.socket.getRemoteSocketAddress().toString()); //IPU
-                        messageToClient.setPublicKey(messagePacket.getPublicKey()); //K
-                        Info info = new Info();
-                        info.setAddress(messagePacket.getInfo().getAddress());
-                        info.setSum(messagePacket.getInfo().getSum() + messagePacket.getInfo().getCurrentAmount());
-                        messageToClient.setInfo(info);//Info
-
-                        Date expDate = new Date();
-                        Calendar c = Calendar.getInstance();
-                        c.setTime(expDate);
-                        c.add(Calendar.DATE, 1);
-                        expDate = c.getTime();
-                        messageToClient.setExpDate(expDate);//EXP
-
-                        String dataToSign = messageToClient.toString();
-
-                        String encriptedData = rsa.encriptLongData(dataToSign);
-                        messagePacket.setEncryptedData(encriptedData);
-                        listOfClients.add(messagePacket);
-                        messageToClient.setEncryptedData(encriptedData);
-                        messageToClient.setPublicKeyRSA(rsa.getPublicKeyRSA());
-                        System.out.println(encriptedData);
-
-                        this.output2.writeObject(messageToClient);
-                        sysPrint("processRequest() 2:" + messagePacket.getMessage());
-
-                        display.append("\nThread" + (trdCnt + 1) + " " + messagePacket.getMessage());
-
-                        System.out.println(rsa.decryptLongData(encriptedData));
-                    } else if (messagePacket.getMessage().toUpperCase().equals("QUIT")) {
-                        messageToClient.setMessage("QUIT");
-                        System.out.println(listOfClients.size());
-                        this.output2.writeObject(messageToClient);
-//                        this.br.close();
-//                        this.output2.close();
-//                        this.socket.close();
-                        loopCTL2 = true;
+                    System.out.println("wait for client------");
+                    Object messageFormRemote = this.br.readObject();
+                    if (messageFormRemote instanceof Message) {
+                        Message messagePacket = (Message) messageFormRemote;
+                        System.out.println(messagePacket.getMessage());
+                        replyToATM(messagePacket);
+                    }
+                    if (messageFormRemote instanceof ControllerMessage) {
+                        ControllerMessage messagePacket = (ControllerMessage) messageFormRemote;
+                        replyToController(messagePacket);
                     }
                 }
             } catch (Exception e) {
                 //System.out.println(e);
             }
         }
+
+        private void replyToATM(Message messagePacket) throws IOException {
+            Message messageToClient = new Message();
+            if (messagePacket.getMessage().equals("getCertificateAndCharge")) {
+                listOfClients.add(messagePacket);
+                System.out.println("enrollClient ok!");
+
+                System.out.println(messagePacket.getPublicKey());
+                RSA rsa = new RSA();
+
+                /*C(U)=(B,U,IPU,K,EXP,INFO, SIG(THIS))*/
+
+                messageToClient.setMessage("enrollClient ok!");
+                messageToClient.setIdBank("RATP");
+                messageToClient.setCardNumber(messagePacket.getCardNumber()); //U
+                messageToClient.setIPU(this.socket.getRemoteSocketAddress().toString()); //IPU
+                messageToClient.setPublicKey(messagePacket.getPublicKey()); //K
+                Info info = new Info();
+                info.setAddress(messagePacket.getInfo().getAddress());
+                info.setSum(messagePacket.getInfo().getSum() + messagePacket.getInfo().getCurrentAmount());
+                messageToClient.setInfo(info);//Info
+
+                Date expDate = new Date();
+                Calendar c = Calendar.getInstance();
+                c.setTime(expDate);
+                c.add(Calendar.DATE, 1);
+                expDate = c.getTime();
+                messageToClient.setExpDate(expDate);//EXP
+
+                String dataToSign = messageToClient.toString();
+
+                String encryptedData = rsa.encriptLongData(dataToSign);
+                messagePacket.setEncryptedData(encryptedData);
+                listOfClients.add(messagePacket);
+                messageToClient.setEncryptedData(encryptedData);
+                messageToClient.setPublicKeyRSA(rsa.getPublicKeyRSA());
+                System.out.println(encryptedData);
+                saveCertificateToFile(messageToClient, messagePacket.getCardNumber());
+                this.output2.writeObject(messageToClient);
+                sysPrint("processRequest() 2:" + messagePacket.getMessage());
+
+                display.append("\nThread" + (trdCnt + 1) + " " + messagePacket.getMessage());
+
+                System.out.println(rsa.decryptLongData(encryptedData));
+            } else if (messagePacket.getMessage().toUpperCase().equals("QUIT")) {
+                messageToClient.setMessage("QUIT");
+                System.out.println(listOfClients.size());
+                this.output2.writeObject(messageToClient);
+//                        this.br.close();
+//                        this.output2.close();
+//                        this.socket.close();
+                loopCTL2 = true;
+            }
+        }
+
+        private void replyToController(ControllerMessage messagePacket) throws IOException {
+            ControllerMessage messageToClient = new ControllerMessage("responseFromServer");
+            if (messagePacket.getMessage().equals("check")) {
+                System.out.println("enrollController ok!");
+                System.out.println(messagePacket.getCertificate());
+
+                JsonUtil jsonUtil = new JsonUtil();
+                Map<String, String> allCertificates = jsonUtil.getAllCertificates();
+                messageToClient.setMessage("enrollClient ok!");
+                if (allCertificates.get(messagePacket.getCardNumber()) != null &&
+                        Objects.equals(allCertificates.get(messagePacket.getCardNumber()).trim(), messagePacket.getCertificate())) {
+                    messageToClient.setValid(true);
+                } else {
+                    messageToClient.setValid(false);
+                }
+
+                this.output2.writeObject(messageToClient);
+                sysPrint("processRequest() 2:" + messagePacket.getMessage());
+
+                display.append("\nThread" + (trdCnt + 1) + " " + messagePacket.getMessage());
+
+            } else if (messagePacket.getMessage().toUpperCase().equals("QUIT")) {
+                messageToClient.setMessage("QUIT");
+                System.out.println(listOfClients.size());
+                this.output2.writeObject(messageToClient);
+//                        this.br.close();
+//                        this.output2.close();
+//                        this.socket.close();
+                loopCTL2 = true;
+            }
+        }
+    }
+
+    private void saveCertificateToFile(Message certificate, String cardNumber) {
+        JsonUtil jsonUtil = new JsonUtil();
+        jsonUtil.saveCertificate(cardNumber, Utils.sha1(certificate.toString()));
     }
 }

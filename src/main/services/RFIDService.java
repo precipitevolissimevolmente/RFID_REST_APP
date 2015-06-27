@@ -2,7 +2,7 @@ package main.services;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.primitives.Bytes;
-import main.util.LoadFromJSON;
+import main.util.JsonUtil;
 
 import javax.smartcardio.*;
 import java.nio.charset.Charset;
@@ -34,7 +34,7 @@ public class RFIDService {
                 throw new Exception("No card terminals available");
             }
             terminal = terminals.get(0);
-            LoadFromJSON loadFromJSON = new LoadFromJSON();
+            JsonUtil loadFromJSON = new JsonUtil();
             atrInfo = loadFromJSON.getATRInfo();
         } catch (Exception e) {
             e.printStackTrace();

@@ -1,10 +1,7 @@
 package main.rest;
 
 import com.google.common.collect.ImmutableMap;
-import main.services.ChargeTagService;
-import main.services.PayService;
-import main.services.RFIDService;
-import main.services.Utils;
+import main.services.*;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
@@ -20,6 +17,16 @@ import java.util.Map;
  */
 @Path("/card")
 public class RFIDController {
+
+    @GET
+    @Path("certificate")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response checkCertificate() throws Exception {
+        ControllerTagService controller = new ControllerTagService();
+        return Response.ok(controller.checkCardCertificate())
+                .header("Access-Control-Allow-Origin", "http://localhost")
+                .build();
+    }
 
     @GET
     @Path("creditCard")

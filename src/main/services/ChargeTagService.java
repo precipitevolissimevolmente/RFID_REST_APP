@@ -3,26 +3,22 @@ package main.services;
 import com.google.common.collect.ImmutableMap;
 import main.payword.MessagePacket.Info;
 import main.payword.MessagePacket.Message;
-import main.util.LoadFromJSON;
+import main.util.JsonUtil;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.math.BigInteger;
 import java.net.Socket;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import static main.payword.MessagePacket.Message.messageQuit;
 import static main.services.Utils.blocksForHashChain;
+import static main.services.Utils.sha1;
 
 /**
  * Created by G on 11.06.2015.
@@ -47,7 +43,7 @@ public class ChargeTagService {
      */
     public Map<String, String> getCardAmount() {
         String cardUID = rfidService.readUID();
-        LoadFromJSON jsonLoader = new LoadFromJSON();
+        JsonUtil jsonLoader = new JsonUtil();
         Map<String, List<Integer>> cardKeys = jsonLoader.getCardKeys();
         if (cardKeys.get(cardUID) == null) {
             return ImmutableMap.of(STATUS, "Invalid card");
@@ -57,8 +53,11 @@ public class ChargeTagService {
             return ImmutableMap.of(STATUS, "Invalid key");
         }
 
-        List<String> hashChain = getPayWords();
         Integer usedPayWords = getUsedPayWords();
+        if (usedPayWords == -1) {
+            return ImmutableMap.of("status", "New Card");
+        }
+        List<String> hashChain = getPayWords();
         int currentAmount = hashChain.size() - usedPayWords - 1;
         return ImmutableMap.of("amount", String.valueOf(currentAmount) + " RON", "tickets", String.valueOf(currentAmount / 2));
     }
@@ -74,7 +73,7 @@ public class ChargeTagService {
         Message certificate;
         String cardUID = rfidService.readUID();
 
-        LoadFromJSON loadCardKeys = new LoadFromJSON();
+        JsonUtil loadCardKeys = new JsonUtil();
         Map<String, List<Integer>> cardKeys = loadCardKeys.getCardKeys();
         if (cardKeys.get(cardUID) == null) {
             return ImmutableMap.of(STATUS, "Invalid card");
@@ -82,9 +81,14 @@ public class ChargeTagService {
         //Load key
         response.putAll(rfidService.loadKey(cardKeys.get(cardUID)));
         //check current amount
-        List<String> hashChain = getPayWords();
         Integer usedPayWords = getUsedPayWords();
+        List<String> hashChain = getPayWords();
         int currentAmount = hashChain.size() - usedPayWords - 1;
+        if (usedPayWords == -1) {
+            currentAmount = 0;
+            response.put("status", "New card");
+        }
+
         if (currentAmount + amount > 42) {
             int maxAmountToLoad = 42 - currentAmount;
             if (maxAmountToLoad == 0) {
@@ -173,21 +177,6 @@ public class ChargeTagService {
         return hc;
     }
 
-
-    static String sha1(String input) {
-        try {
-            MessageDigest mDigest = MessageDigest.getInstance("SHA1");
-            byte[] shortArray = new byte[16];
-            byte[] result = mDigest.digest(input.getBytes()); //is 20bytes
-            System.arraycopy(result, 0, shortArray, 0, shortArray.length);
-            return new String(shortArray);
-        } catch (NoSuchAlgorithmException ex) {
-            ex.printStackTrace();
-        }
-
-        return null;
-    }
-
     public BigInteger geneRandomNumber() {
         SecureRandom secureRandom = new SecureRandom();
         BigInteger r = new BigInteger(1024, secureRandom);
@@ -214,7 +203,7 @@ public class ChargeTagService {
         Message message = new Message();
         try {
             message = (Message) this.input.readObject();
-            Logger.getLogger(ChargeTagService.class.getName()).log(Level.INFO, null, "PublicTransportServer->Primit Data");
+            Logger.getLogger(ChargeTagService.class.getName()).log(Level.INFO, null, "PublicTransportServer->Received Data");
         } catch (IOException | ClassNotFoundException ex) {
             ex.printStackTrace();
         }
@@ -223,6 +212,10 @@ public class ChargeTagService {
 
     private Integer getUsedPayWords() {
         rfidService.authenticate(Utils.usedHashBlock);
-        return Integer.valueOf(rfidService.readBlockASCII(Utils.usedHashBlock));
+        try {
+            return Integer.valueOf(rfidService.readBlockASCII(Utils.usedHashBlock));
+        } catch (NumberFormatException ignore) {
+            return -1;
+        }
     }
 }
