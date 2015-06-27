@@ -98,6 +98,16 @@ public class RFIDService {
             response = channel.transmit(command);
             info.put("cardNumber", parseCardNumber(bytesToHex(response.getBytes())));
 
+            //Cardholder for VISA
+            command = new CommandAPDU(toByteArray(of(0x00, 0xB2, 0x02, 0x0C, 0x00)));
+            ResponseAPDU responseB = channel.transmit(command);
+            info.put("other", Utils.hexToASCII(bytesToHex(responseB.getBytes())));
+
+//            //Cardholder for ---
+//            command = new CommandAPDU(toByteArray(of(0x00, 0xB2, 0x02, 0x0C, 0x00)));
+//            responseB = channel.transmit(command);
+//            info.put("ss", Utils.hexToASCII(bytesToHex(responseB.getBytes())));
+
         } catch (Exception e) {
             e.printStackTrace();
         }
