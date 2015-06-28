@@ -5,6 +5,8 @@ import main.util.JsonUtil;
 
 import java.security.InvalidParameterException;
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -62,7 +64,10 @@ public class PayService {
         long epochSecond = Instant.now().getEpochSecond();
         rfidService.authenticateAndWriteData(Utils.lastBusData, String.valueOf(busNumber + "#" + epochSecond));
         status.put("busInfo", busNumber);
-        status.put("time", Instant.ofEpochSecond(epochSecond).toString());
+        DateTimeFormatter formatter =
+                DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss").withZone(ZoneId.systemDefault());
+        Instant instant = Instant.ofEpochSecond(epochSecond);
+        status.put("time", formatter.format(instant));
         status.put("left", hashChain.size() - usedHash - 1 + " Ron left");
         return status;
     }
