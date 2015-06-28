@@ -4,10 +4,13 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.primitives.Bytes;
 import main.util.JsonUtil;
 
+import javax.ejb.Singleton;
 import javax.smartcardio.*;
 import java.nio.charset.Charset;
 import java.security.InvalidParameterException;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static com.google.common.collect.ImmutableList.of;
 import static main.services.Utils.asciiToHex;
@@ -16,7 +19,7 @@ import static main.services.Utils.parseResponse;
 /**
  * Created by G on 07.06.2015.
  */
-
+@Singleton
 public class RFIDService {
     private final static char[] hexArray = "0123456789ABCDEF".toCharArray();
     public static final int error = -1;
@@ -100,18 +103,76 @@ public class RFIDService {
 
             //Cardholder for VISA
             command = new CommandAPDU(toByteArray(of(0x00, 0xB2, 0x02, 0x0C, 0x00)));
-            ResponseAPDU responseB = channel.transmit(command);
-            info.put("other", Utils.hexToASCII(bytesToHex(responseB.getBytes())));
+            response = channel.transmit(command);
+            info.put("cardholder", parseCardHolder(bytesToHex(response.getBytes())));
 
 //            //Cardholder for ---
 //            command = new CommandAPDU(toByteArray(of(0x00, 0xB2, 0x02, 0x0C, 0x00)));
 //            responseB = channel.transmit(command);
 //            info.put("ss", Utils.hexToASCII(bytesToHex(responseB.getBytes())));
 
+            //Transaction history
+            response = getTransactionHistory(channel, 0x01);
+            info.put("t1", parseTransaction(bytesToHex(response.getBytes())));
+
+            response = getTransactionHistory(channel, 0x02);
+            info.put("t2", parseTransaction(bytesToHex(response.getBytes())));
+
+            response = getTransactionHistory(channel, 0x03);
+            info.put("t3", parseTransaction(bytesToHex(response.getBytes())));
+
+            response = getTransactionHistory(channel, 0x04);
+            info.put("t4", parseTransaction(bytesToHex(response.getBytes())));
+
+            response = getTransactionHistory(channel, 0x05);
+            info.put("t5", parseTransaction(bytesToHex(response.getBytes())));
+
+            response = getTransactionHistory(channel, 0x06);
+            info.put("t6", parseTransaction(bytesToHex(response.getBytes())));
+
+            response = getTransactionHistory(channel, 0x07);
+            info.put("t7", parseTransaction(bytesToHex(response.getBytes())));
+
+            response = getTransactionHistory(channel, 0x08);
+            info.put("t8", parseTransaction(bytesToHex(response.getBytes())));
+
+            response = getTransactionHistory(channel, 0x09);
+            info.put("t9", parseTransaction(bytesToHex(response.getBytes())));
+
+            response = getTransactionHistory(channel, 0x0A);
+            info.put("t10", parseTransaction(bytesToHex(response.getBytes())));
         } catch (Exception e) {
             e.printStackTrace();
         }
         return info;
+    }
+
+    private ResponseAPDU getTransactionHistory(CardChannel channel, int nr) throws CardException {
+        CommandAPDU command;
+        ResponseAPDU response;
+        command = new CommandAPDU(toByteArray(of(0x00, 0xB2, nr, 0x64, 0x00)));
+        response = channel.transmit(command);
+        if (bytesToHex(response.getBytes()).equals("6A82")) {
+            command = new CommandAPDU(toByteArray(of(0x00, 0xB2, nr, 0x5C, 0x00)));
+            response = channel.transmit(command);
+        }
+        return response;
+    }
+
+    private String parseTransaction(String responseHex) {
+        String amount = responseHex.substring(2, 12);
+        String date = responseHex.substring(18, 24);
+
+        return amount + " " + date;
+    }
+
+    private String parseCardHolder(String responseHex) {
+        if (!responseHex.contains("5F20")) {
+            return ""; //not found
+        }
+        int startIndex = responseHex.toUpperCase().indexOf("5F20");
+        int endIndex = responseHex.toUpperCase().indexOf("9F1F");
+        return Utils.hexToASCII(responseHex.substring(startIndex, endIndex));
     }
 
     private String parseCardTypeInfo(String cardTypeInfo) {

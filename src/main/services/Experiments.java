@@ -16,23 +16,26 @@ public class Experiments {
     private final static char[] hexArray = "0123456789ABCDEF".toCharArray();
 
     public static void main(String[] args) {
+        System.out.println("---------------------------------");
+        System.out.println(Utils.hexToASCII("57115126879725594332D1310201000009022F5F200D4841525249532F5420412E4D539F1F2530303030303930323230303030303030303030303030303030303030303030303030303030"));
+        System.out.println("---------------------------------");
 
 //        String s = "D0 70 42 01 20 00 00 96 00 00 0F 5F 20 1A 43 48 41 4E 47 20 53 41 55 20 53 48 45 4F 4E 47 20 20 20 20 20 20 20 20 20 20 9F 1F 18 32 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 39 36 30 30 30 30 30 30";
         String s = "32 50 41 59 2e 53 59 53 2e 44 44 46 30 31 00";
 
         bytesToHex("2PAY.SYS.DDF01".getBytes());
 
-        //MasterCard
-        String hexValue = asciiToHex("Visa Electron");
-//        String hex = bytesToHex("2PAY.SYS.DDF01".getBytes());
-        String hex = "00A404000E";
-//        String hex = s.replace(" ","");
-        StringBuilder output = new StringBuilder();
-        for (int i = 0; i < hex.length(); i += 2) {
-            String str = hex.substring(i, i + 2);
-            output.append((char) Integer.parseInt(str, 16));
-        }
-        System.out.println(output);
+//        //MasterCard
+//        String hexValue = asciiToHex("Visa Electron");
+////        String hex = bytesToHex("2PAY.SYS.DDF01".getBytes());
+//        String hex = "00A404000E";
+////        String hex = s.replace(" ","");
+//        StringBuilder output = new StringBuilder();
+//        for (int i = 0; i < hex.length(); i += 2) {
+//            String str = hex.substring(i, i + 2);
+//            output.append((char) Integer.parseInt(str, 16));
+//        }
+//        System.out.println(output);
 
 //        Map<String, String> cardD = new HashMap<>();
 //

@@ -4,26 +4,21 @@ import com.google.common.collect.ImmutableMap;
 import main.payword.MessagePacket.ControllerMessage;
 import main.util.JsonUtil;
 
+import javax.ejb.Singleton;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.math.BigInteger;
 import java.net.Socket;
-import java.security.SecureRandom;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
-
-import static main.services.Utils.blocksForHashChain;
-import static main.services.Utils.sha1;
 
 /**
  * Created by G on 11.06.2015.
  */
+@Singleton
 public class ControllerTagService {
     public static final String STATUS = "status";
     private ObjectInputStream input;

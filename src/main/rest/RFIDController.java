@@ -3,6 +3,7 @@ package main.rest;
 import com.google.common.collect.ImmutableMap;
 import main.services.*;
 
+import javax.ejb.EJB;
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -17,12 +18,17 @@ import java.util.Map;
  */
 @Path("/card")
 public class RFIDController {
+    @EJB
+    private ControllerTagService controller;
+    @EJB
+    private RFIDService rfIdServices;
+    @EJB
+    private ChargeTagService chargeTagService;
 
     @GET
     @Path("certificate")
     @Produces(MediaType.APPLICATION_JSON)
     public Response checkCertificate() throws Exception {
-        ControllerTagService controller = new ControllerTagService();
         return Response.ok(controller.checkCardCertificate())
                 .header("Access-Control-Allow-Origin", "http://localhost")
                 .build();
@@ -32,7 +38,6 @@ public class RFIDController {
     @Path("creditCard")
     @Produces(MediaType.APPLICATION_JSON)
     public Response getCreditCardData() throws Exception {
-        RFIDService rfIdServices = new RFIDService();
         return Response.ok(rfIdServices.getCreditCardData())
                 .header("Access-Control-Allow-Origin", "http://localhost")
                 .build();
@@ -42,7 +47,6 @@ public class RFIDController {
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     public Response getUID() throws Exception {
-        RFIDService rfIdServices = new RFIDService();
         return Response.ok(ImmutableMap.of("serialNumber", rfIdServices.readUID()))
                 .header("Access-Control-Allow-Origin", "http://localhost")
                 .build();
@@ -52,7 +56,6 @@ public class RFIDController {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("details")
     public Response getATR() throws Exception {
-        RFIDService rfIdServices = new RFIDService();
         return Response.ok(rfIdServices.getDetails())
                 .header("Access-Control-Allow-Origin", "*").build();
     }
@@ -65,7 +68,6 @@ public class RFIDController {
         if (key.size() != 6) {
             throw new InvalidParameterException();
         }
-        RFIDService rfIdServices = new RFIDService();
         return Response.ok(rfIdServices.loadKey(key))
                 .build();
     }
@@ -78,7 +80,6 @@ public class RFIDController {
         if (key.size() != 6) {
             throw new InvalidParameterException();
         }
-        RFIDService rfIdServices = new RFIDService();
         Map<String, String> response = new HashMap<>();
         response.putAll(rfIdServices.loadKey(key));
         response.putAll(rfIdServices.authenticate(blockNumber));
@@ -90,7 +91,6 @@ public class RFIDController {
     @Consumes(MediaType.APPLICATION_JSON)
     @Path("write/{blockNumber}")
     public Response writeDataBlock(@PathParam("blockNumber") Integer blockNumber, String data) throws Exception {
-        RFIDService rfIdServices = new RFIDService();
         Map<String, String> response = new HashMap<>();
         response.putAll(rfIdServices.writeData(blockNumber, data));
         return Response.ok(response).build();
@@ -100,7 +100,6 @@ public class RFIDController {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("authenticate/{blockNumber}")
     public Response authenticate(@PathParam("blockNumber") Integer blockNumber) throws Exception {
-        RFIDService rfIdServices = new RFIDService();
         return Response.ok(rfIdServices.authenticate(blockNumber)).header("Access-Control-Allow-Origin", "*").build();
     }
 
@@ -108,7 +107,6 @@ public class RFIDController {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("readBlockAscii/{blockNumber}")
     public Response readBlock(@PathParam("blockNumber") Integer blockNumber) throws Exception {
-        RFIDService rfIdServices = new RFIDService();
         return Response.ok(ImmutableMap.of("dataBlock", rfIdServices.readBlockASCII(blockNumber)))
                 .build();
     }
@@ -117,7 +115,6 @@ public class RFIDController {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("readBlockHex/{blockNumber}")
     public Response authenticateAndReadBlockHex(@PathParam("blockNumber") Integer blockNumber) throws Exception {
-        RFIDService rfIdServices = new RFIDService();
         return Response.ok(ImmutableMap.of("dataBlock", rfIdServices.readBlockHex(blockNumber)))
                 .header("Access-Control-Allow-Origin", "*").build();
     }
@@ -126,7 +123,6 @@ public class RFIDController {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("readAllBlocksAsciiMIFARE1K")
     public Response getReadAllBlocks() throws Exception {
-        RFIDService rfIdServices = new RFIDService();
         Map<String, String> blocks = new HashMap<>();
         for (Integer blockNumber : Utils.blocksForHashChain) {
             rfIdServices.authenticate(blockNumber);
@@ -143,7 +139,6 @@ public class RFIDController {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("readAllBlocksHexMIFARE1K")
     public Response getReadAllBlocksHex() throws Exception {
-        RFIDService rfIdServices = new RFIDService();
         Map<String, String> blocks = new HashMap<>();
         for (Integer blockNumber : Utils.blocksForHashChain) {
             rfIdServices.authenticate(blockNumber);
@@ -160,7 +155,6 @@ public class RFIDController {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("readAllBlocksAsciiMIFFARE-Ultralight")
     public Response readAllUltraLightBlocks() throws Exception {
-        RFIDService rfIdServices = new RFIDService();
         Map<String, String> blocks = new HashMap<>();
         for (int i = 0; i < 16; i++) {
             blocks.put(String.valueOf(i), rfIdServices.readBlockStringUTF8(i));
@@ -173,7 +167,6 @@ public class RFIDController {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("amount")
     public Response getAmount() throws Exception {
-        ChargeTagService chargeTagService = new ChargeTagService();
         return Response.ok(chargeTagService.getCardAmount()).header("Access-Control-Allow-Origin", "*").build();
     }
 
@@ -181,7 +174,6 @@ public class RFIDController {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("charge/{amount}")
     public Response charge(@PathParam("amount") Integer amount) throws Exception {
-        ChargeTagService chargeTagService = new ChargeTagService();
         return Response.ok(chargeTagService.charge(amount)).header("Access-Control-Allow-Origin", "*").build();
     }
 
@@ -189,8 +181,8 @@ public class RFIDController {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("pay/{numberOfTickets}")
     public Response pay(@PathParam("numberOfTickets") Integer numberOfTickets) throws Exception {
-        PayService chargeTagService = new PayService("I29AC");
-        return Response.ok(chargeTagService.payTax(numberOfTickets)).header("Access-Control-Allow-Origin", "*").build();
+        PayService payService = new PayService("I29AC");
+        return Response.ok(payService.payTax(numberOfTickets)).header("Access-Control-Allow-Origin", "*").build();
     }
 
     @OPTIONS
